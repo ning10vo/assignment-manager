@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>대학생 과제 관리자 | Assignment Manager</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header & Dashboard -->
+    <header class="app-header">
+      <div class="logo-area">
+        <i class="fa-solid fa-graduation-cap logo-icon"></i>
+        <div class="logo-text">
+          <h1>과제 관리자</h1>
+          <p>Smart Assignment Planner</p>
+        </div>
+      </div>
+
+      <!-- Dashboard Statistics Card -->
+      <div class="dashboard-card" id="dashboard-stats">
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">전체 과제</span>
+            <span class="stat-value" id="stat-total">0</span>
+          </div>
+          <div class="stat-item border-left">
+            <span class="stat-label">완료 과제</span>
+            <span class="stat-value text-success" id="stat-completed">0</span>
+          </div>
+          <div class="stat-item border-left">
+            <span class="stat-label">완료율</span>
+            <span class="stat-value text-primary" id="stat-ratio">0%</span>
+          </div>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="stat-progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation & Filter Toolbar -->
+    <section class="toolbar-section">
+      <div class="view-toggle-tabs">
+        <button class="tab-btn active" id="tab-list-btn" onclick="switchView('list')">
+          <i class="fa-solid fa-list-check"></i> 리스트 보기
+        </button>
+        <button class="tab-btn" id="tab-calendar-btn" onclick="switchView('calendar')">
+          <i class="fa-solid fa-calendar-days"></i> 달력 보기
+        </button>
+      </div>
+
+      <div class="controls-wrapper">
+        <!-- Search and filters -->
+        <div class="search-filter-box">
+          <div class="search-input-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="search-input" placeholder="과목명 또는 과제 제목 검색..." oninput="handleFilterChange()">
+          </div>
+          
+          <select id="subject-filter" onchange="handleFilterChange()">
+            <option value="">모든 과목</option>
+          </select>
+
+          <select id="sort-select" onchange="handleFilterChange()">
+            <option value="dueAsc">마감일 빠른 순</option>
+            <option value="dueDesc">마감일 느린 순</option>
+            <option value="priorityDesc">우선순위 높은 순</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" id="open-add-modal-btn">
+          <i class="fa-solid fa-plus"></i> 새 과제 추가
+        </button>
+      </div>
+    </section>
+
+    <!-- Main Content Viewports -->
+    <main class="main-content">
+      <!-- 1. List View (Default) -->
+      <div id="list-view" class="view-panel active">
+        <div class="board-grid">
+          <!-- Active Tasks Column -->
+          <div class="board-column">
+            <div class="column-header">
+              <h2><i class="fa-regular fa-clock text-warning"></i> 진행 중인 과제 <span class="badge" id="active-count">0</span></h2>
+            </div>
+            <div class="cards-container" id="active-tasks-container">
+              <!-- Cards will be dynamically injected here -->
+            </div>
+          </div>
+
+          <!-- Completed Tasks Column -->
+          <div class="board-column">
+            <div class="column-header">
+              <h2><i class="fa-regular fa-circle-check text-success"></i> 완료된 과제 <span class="badge badge-success" id="completed-count">0</span></h2>
+            </div>
+            <div class="cards-container completed-container" id="completed-tasks-container">
+              <!-- Completed cards will be dynamically injected here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Calendar View -->
+      <div id="calendar-view" class="view-panel">
+        <div class="calendar-wrapper">
+          <div class="calendar-header">
+            <button class="calendar-nav-btn" onclick="prevMonth()"><i class="fa-solid fa-chevron-left"></i></button>
+            <h2 id="calendar-month-year">2026년 6월</h2>
+            <button class="calendar-nav-btn" onclick="nextMonth()"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+          
+          <div class="calendar-grid-header">
+            <div class="day-name sunday">일</div>
+            <div class="day-name">월</div>
+            <div class="day-name">화</div>
+            <div class="day-name">수</div>
+            <div class="day-name">목</div>
+            <div class="day-name">금</div>
+            <div class="day-name saturday">토</div>
+          </div>
+          
+          <div class="calendar-grid-body" id="calendar-days">
+            <!-- Calendar days will be dynamically injected here -->
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>&copy; 2026 과제 관리자. All rights reserved. 브라우저 localStorage에 안전하게 저장됩니다.</p>
+    </footer>
+  </div>
+
+  <!-- TASK INPUT MODAL -->
+  <div class="modal-backdrop" id="task-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">새 과제 등록</h3>
+        <button class="modal-close-btn" id="close-modal-btn">&times;</button>
+      </div>
+      <form id="task-form" onsubmit="saveTask(event)">
+        <input type="hidden" id="task-id">
+        
+        <div class="form-group">
+          <label for="task-subject">과목명 <span class="text-danger">*</span></label>
+          <input type="text" id="task-subject" required list="subject-list" placeholder="예: 컴퓨터네트워크, 마케팅원론">
+          <!-- Recommend previously entered subject names -->
+          <datalist id="subject-list"></datalist>
+        </div>
+
+        <div class="form-group">
+          <label for="task-title">과제 제목 <span class="text-danger">*</span></label>
+          <input type="text" id="task-title" required placeholder="예: 3차 과제 제출, 팀 프로젝트 기획서">
+        </div>
+
+        <div class="form-group">
+          <label for="task-description">과제 설명</label>
+          <textarea id="task-description" rows="3" placeholder="상세 내용이나 참고 사항을 입력하세요."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="task-due-date">제출 마감일 <span class="text-danger">*</span></label>
+            <input type="date" id="task-due-date" required>
+          </div>
+          <div class="form-group col-6">
+            <label for="task-due-time">제출 시간 <span class="text-danger">*</span></label>
+            <input type="time" id="task-due-time" required value="23:59">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>우선순위 <span class="text-danger">*</span></label>
+          <div class="priority-radio-group">
+            <label class="priority-radio-label priority-high">
+              <input type="radio" name="task-priority" value="high" required checked>
+              <span class="custom-radio"></span> 상 (High)
+            </label>
+            <label class="priority-radio-label priority-medium">
+              <input type="radio" name="task-priority" value="medium">
+              <span class="custom-radio"></span> 중 (Medium)
+            </label>
+            <label class="priority-radio-label priority-low">
+              <input type="radio" name="task-priority" value="low">
+              <span class="custom-radio"></span> 하 (Low)
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="cancel-modal-btn">취소</button>
+          <button type="submit" class="btn btn-primary" id="save-task-btn">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CUSTOM DELETE CONFIRM MODAL -->
+  <div class="modal-backdrop" id="delete-confirm-modal">
+    <div class="modal-content delete-modal-content">
+      <div class="delete-icon-wrapper">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3>과제를 삭제하시겠습니까?</h3>
+      <p>삭제된 과제 정보는 복구할 수 없습니다. 정말로 삭제하시겠습니까?</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" id="cancel-delete-btn">취소</button>
+        <button type="button" class="btn btn-danger" id="confirm-delete-btn">삭제하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM DETAIL VIEW MODAL (For calendar clicks) -->
+  <div class="modal-backdrop" id="detail-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="detail-subject-tag" id="detail-subject">컴퓨터네트워크</span>
+        <button class="modal-close-btn" id="close-detail-modal-btn">&times;</button>
+      </div>
+      <div class="detail-body">
+        <h2 id="detail-title">과제 제목</h2>
+        <div class="detail-meta">
+          <div class="meta-item">
+            <i class="fa-regular fa-calendar-check"></i>
+            <div>
+              <span class="meta-label">마감 일시</span>
+              <span class="meta-value" id="detail-due">2026-06-10 23:59</span>
+            </div>
+          </div>
+          <div class="meta-item">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <div>
+              <span class="meta-label">우선순위</span>
+              <span class="meta-value" id="detail-priority">상 (High)</span>
+            </div>
+          </div>
+          <div class="meta-item" id="detail-completed-date-wrapper">
+            <i class="fa-regular fa-circle-check"></i>
+            <div>
+              <span class="meta-label">완료 일시</span>
+              <span class="meta-value text-success" id="detail-completed-date">-</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="detail-description-section">
+          <h4>과제 설명</h4>
+          <p id="detail-description">설명이 입력되지 않은 과제입니다.</p>
+        </div>
+      </div>
+      <div class="modal-actions detail-actions">
+        <button type="button" class="btn btn-outline" id="detail-complete-btn">완료 처리</button>
+        <button type="button" class="btn btn-outline-primary" id="detail-edit-btn">수정</button>
+        <button type="button" class="btn btn-danger" id="detail-delete-btn">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Main JavaScript -->
+  <script src="js/app.js"></script>
+</body>
+</html>
